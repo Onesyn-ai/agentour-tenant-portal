@@ -44,7 +44,7 @@ export class AgentourClient {
   usage() { return this.request<any>("/v1/tenant/usage"); }
   billing() { return this.request<any>("/v1/sdk/billing"); }
   audit() { return this.request<any>("/v1/tenant/audit-events"); }
-  feishuStatus() { return this.request<any>("/v1/integrations/feishu/status"); }
+  feishuStatus() { return this.request<any>("/v1/tenant/channels"); }
 }
 
 export async function tokenFromEndpoint(endpoint: string) {
