@@ -12,6 +12,6 @@ export function portalConfig(env: Record<string, string | undefined> = import.me
     tokenEndpoint: env.VITE_TOKEN_ENDPOINT || "/api/agentour-token",
     brandName: env.VITE_BRAND_NAME || "Agentour Tenant Portal",
     brandLogo: env.VITE_BRAND_LOGO || "",
-    primaryColor: env.VITE_PRIMARY_COLOR || "#3867f4"
+    primaryColor: env.VITE_PRIMARY_COLOR || "#ed6638"
   };
 }

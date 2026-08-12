@@ -63,7 +63,7 @@ packages:
     version: 0.1.0
 
   '@agentour/ui@file:vendor/agentour-ui-0.1.0.tgz':
-    resolution: {integrity: sha512-SB5E8onY96rZIlokQqiGpgBH4EKfdHx15Wco8+7m3KnTW2DGkUB1eczlx6Ti0zB7S2oYJYxctc4YnWw0lMh5wg==, tarball: file:vendor/agentour-ui-0.1.0.tgz}
+    resolution: {integrity: sha512-Uz68FkJk1lfhKECK7Aka4B3zFIOkQEpySm25yOAdZCtX3J38I9CMFOTHGKgpAFqeEcn33qWKE8FUtPckW7mdHg==, tarball: file:vendor/agentour-ui-0.1.0.tgz}
     version: 0.1.0
     peerDependencies:
       react: '>=18'

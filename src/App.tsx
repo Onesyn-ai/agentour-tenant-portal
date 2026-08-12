@@ -11,6 +11,7 @@ import {AgentourClient,tokenFromEndpoint,type Agent,type LibraryItem,type Sessio
 import {AgentourHttpError} from "@agentour/sdk";
 import {portalConfig} from "./config";
 import "./styles.css";
+import "./console-alignment.css";
 
 type Tab="discover"|"workspace"|"library"|"publish"|"billing"|"channels"|"admin";
 const tabs:{id:Tab;label:string;icon:string;admin?:boolean}[]=[
@@ -20,13 +21,13 @@ const descriptions:Record<Tab,string>={discover:"浏览租户已获配的 Agent 
 
 export default function App(){
  const config=useMemo(()=>portalConfig(),[]),client=useMemo(()=>new AgentourClient(config,()=>tokenFromEndpoint(config.tokenEndpoint)),[config]);
- const [context,setContext]=useState<TenantContext|null>(null),[agents,setAgents]=useState<Agent[]>([]),[tab,setTab]=useState<Tab>("discover"),[error,setError]=useState(""),[busy,setBusy]=useState(true),[sessionId,setSessionId]=useState("");
+ const [context,setContext]=useState<TenantContext|null>(null),[agents,setAgents]=useState<Agent[]>([]),[tab,setTab]=useState<Tab>("discover"),[mode,setMode]=useState<"user"|"admin">("user"),[error,setError]=useState(""),[busy,setBusy]=useState(true),[sessionId,setSessionId]=useState("");
  const isAdmin=Boolean(context?.scopes.some(scope=>scope.startsWith("tenant:")));
  useEffect(()=>{document.documentElement.style.setProperty("--primary",config.primaryColor);let cancelled=false;void(async()=>{for(let attempt=0;attempt<3;attempt++)try{const [ctx,list]=await Promise.all([client.context(),client.agents()]);if(!cancelled){setContext(ctx);setAgents(list.data);setBusy(false)}return}catch(e){const terminal=e instanceof AgentourHttpError&&e.status===401;if((terminal||attempt===2)&&!cancelled){setError(String(e));setBusy(false);return}await new Promise(r=>setTimeout(r,500*(attempt+1)))}})();return()=>{cancelled=true}},[client,config]);
  if(busy)return <main className="center"><LoadingState label="正在进入租户工作区…"/></main>;
  if(error)return <main className="center"><section className="error"><h1>无法进入门户</h1><p>{error}</p><small>身份端点：{config.tokenEndpoint}</small></section></main>;
- const visible=tabs.filter(x=>!x.admin||isAdmin),meta=visible.find(x=>x.id===tab)!;
- return <AgentourShell brand={context?.tenant.name||config.brandName} subtitle="Agent 平台" items={visible} active={tab} onNavigate={id=>{setSessionId("");setTab(id as Tab)}} balance={<><small>租户余额</small><strong>{context?.tenant.balance_credits?.toLocaleString()||0} 积分</strong></>} identity={<div className="tenant-identity"><b>{context?.subject_id?"内部用户":"管理会话"}</b><small>{context?.subject_id||context?.actor_type}</small></div>} headerActions={<Badge tone="success">租户已连接</Badge>}>
+ const visible=tabs.filter(x=>mode==="admin"?x.admin:!x.admin),meta=visible.find(x=>x.id===tab)||visible[0];
+ return <AgentourShell brand={context?.tenant.name||config.brandName} subtitle="Agentour" items={visible} active={tab} mode={isAdmin?mode:undefined} onModeChange={isAdmin?(next=>{setSessionId("");setMode(next);setTab(next==="admin"?"admin":"discover")}):undefined} onNavigate={id=>{setSessionId("");setTab(id as Tab)}} balance={<><small>租户余额</small><strong>{context?.tenant.balance_credits?.toLocaleString()||0} 积分</strong></>} identity={<div className="tenant-identity"><b>{context?.subject_id?"内部用户":"管理会话"}</b><small>{context?.subject_id||context?.actor_type}</small></div>} headerActions={<Badge tone="success">租户已连接</Badge>}>
   <PageHeader eyebrow="用户工作区" title={sessionId?"Session":meta.label} description={sessionId?"与平台一致的运行、审批、输入和交付体验。":descriptions[tab]}/>
   <div className="agentour-content">{sessionId?<SessionView id={sessionId} client={client} onBack={()=>setSessionId("")}/>:<Page tab={tab} agents={agents} client={client} openSession={setSessionId}/>}</div>
  </AgentourShell>;

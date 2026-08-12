@@ -33,10 +33,12 @@ test("normal user traverses every workspace tab",async({page})=>{
 test("tenant admin traverses management and opens a session",async({page})=>{
   const failures=await mock(page,true);
   await page.goto("/");
+  await page.getByRole("button",{name:"管理控制台",exact:true}).click();
   await page.getByRole("button",{name:/租户管理$/}).click();
   for(const label of ["总览","内部用户","Agent 与模型","运行","构建与评测","存储","渠道","审计"]){
     await page.getByRole("button",{name:label,exact:true}).click();
   }
+  await page.getByRole("button",{name:"用户工作区",exact:true}).click();
   await page.getByRole("button",{name:/发现$/}).click();
   await page.getByRole("button",{name:"打开 Demo Agent"}).click();
   await expect(page.getByRole("heading",{name:"Demo Agent",level:2})).toBeVisible();
