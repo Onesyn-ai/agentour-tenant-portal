@@ -7,19 +7,34 @@ export type LibraryItem = {id:string;title?:string;name?:string;origin_kind?:str
 
 export class AgentourClient {
   private token = "";
+  private tokenExpiresAt = 0;
+  private refreshPromise?: Promise<string>;
   constructor(private config: PortalConfig, private tokenProvider?: () => Promise<string>) {}
 
   setToken(token: string) { this.token = token; }
-  private async accessToken() {
-    if (this.tokenProvider) this.token = await this.tokenProvider();
+  private async accessToken(force = false) {
+    if (this.tokenProvider && (force || !this.token || Date.now() >= this.tokenExpiresAt - 30_000)) {
+      this.refreshPromise ||= this.tokenProvider().then(token => {
+        this.token = token;
+        this.tokenExpiresAt = jwtExpiry(token) || Date.now() + 5 * 60_000;
+        return token;
+      }).finally(() => { this.refreshPromise = undefined; });
+      await this.refreshPromise;
+    }
     if (!this.token) throw new Error("尚未获得租户用户Token");
     return this.token;
   }
   async request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const token = await this.accessToken();
-    const response = await fetch(`${this.config.apiBase}${path}`, { ...init, headers: {
+    let response = await fetch(`${this.config.apiBase}${path}`, { ...init, headers: {
       "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...(init.headers || {})
     }});
+    if (response.status === 401 && this.tokenProvider) {
+      const refreshed = await this.accessToken(true);
+      response = await fetch(`${this.config.apiBase}${path}`, { ...init, headers: {
+        "Content-Type": "application/json", Authorization: `Bearer ${refreshed}`, ...(init.headers || {})
+      }});
+    }
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
       throw new Error(body.error || `HTTP ${response.status}`);
@@ -45,6 +60,22 @@ export class AgentourClient {
   billing() { return this.request<any>("/v1/sdk/billing"); }
   audit() { return this.request<any>("/v1/tenant/audit-events"); }
   feishuStatus() { return this.request<any>("/v1/tenant/channels"); }
+  overview() { return this.request<any>("/v1/tenant/overview"); }
+  subjects() { return this.request<any>("/v1/tenant/subjects"); }
+  entitlements() { return this.request<any>("/v1/tenant/entitlements"); }
+  resources() { return this.request<any>("/v1/tenant/resources"); }
+  serviceAccounts() { return this.request<any>("/v1/tenant/service-accounts"); }
+  session(id:string) { return this.request<any>(`/v1/sdk/sessions/${encodeURIComponent(id)}`); }
+  presentation(id:string) { return this.request<any>(`/v1/sdk/sessions/${encodeURIComponent(id)}/presentation`); }
+  artifacts(id:string) { return this.request<any>(`/v1/sdk/sessions/${encodeURIComponent(id)}/artifacts`); }
+  sendMessage(id:string,text:string) { return this.request<any>(`/v1/sdk/sessions/${encodeURIComponent(id)}/messages`,{method:"POST",body:JSON.stringify({text})}); }
+  cancel(id:string) { return this.request<any>(`/v1/sdk/sessions/${encodeURIComponent(id)}/cancel`,{method:"POST",body:"{}"}); }
+  streamUrl(id:string,after=-1) { return `${this.config.apiBase}/v1/sdk/sessions/${encodeURIComponent(id)}/stream?after=${after}`; }
+}
+
+function jwtExpiry(token:string) {
+  try { const payload=JSON.parse(atob(token.split(".")[1])); return Number(payload.exp||0)*1000; }
+  catch { return 0; }
 }
 
 export async function tokenFromEndpoint(endpoint: string) {
