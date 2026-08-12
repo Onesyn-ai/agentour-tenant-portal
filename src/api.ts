@@ -44,7 +44,7 @@ export class AgentourClient {
 
 export async function tokenFromEndpoint(endpoint: string) {
   const response = await fetch(endpoint, { credentials: "include" });
-  if (!response.ok) throw new Error("租户身份服务没有返回有效Token");
+  if (!response.ok) throw new Error("租户身份服务没有返回有效 Token");
   const body = await response.json();
   return body.access_token || body.token;
 }
