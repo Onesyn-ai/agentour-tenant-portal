@@ -22,4 +22,11 @@ describe("AgentourClient",()=>{
     expect(calls).toBe(1);
     globalThis.fetch=original;
   });
+  it("deduplicates concurrent GET requests",async()=>{
+    let calls=0;const original=globalThis.fetch;
+    globalThis.fetch=async()=>{calls++;await Promise.resolve();return new Response(JSON.stringify({data:[]}),{status:200,headers:{"Content-Type":"application/json"}})};
+    const client=new AgentourClient(portalConfig({VITE_AGENTOUR_API_BASE:"https://api.example"}),async()=>"token");
+    await Promise.all([client.sessions(),client.sessions(),client.sessions()]);
+    expect(calls).toBe(1);globalThis.fetch=original;
+  });
 });

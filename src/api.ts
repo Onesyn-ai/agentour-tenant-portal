@@ -9,6 +9,8 @@ export class AgentourClient {
   private token = "";
   private tokenExpiresAt = 0;
   private refreshPromise?: Promise<string>;
+  private readonly inflight = new Map<string, Promise<unknown>>();
+  private readonly cache = new Map<string, { expiresAt: number; value: unknown }>();
   constructor(private config: PortalConfig, private tokenProvider?: () => Promise<string>) {}
 
   setToken(token: string) { this.token = token; }
@@ -25,6 +27,21 @@ export class AgentourClient {
     return this.token;
   }
   async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    const method=(init.method||"GET").toUpperCase();
+    if(method==="GET"){
+      const cached=this.cache.get(path);
+      if(cached&&cached.expiresAt>Date.now())return cached.value as T;
+      const active=this.inflight.get(path);
+      if(active)return active as Promise<T>;
+      const pending=this.performRequest<T>(path,init).then(value=>{
+        this.cache.set(path,{expiresAt:Date.now()+2000,value});return value;
+      }).finally(()=>this.inflight.delete(path));
+      this.inflight.set(path,pending);return pending;
+    }
+    this.cache.clear();
+    return this.performRequest<T>(path,init);
+  }
+  private async performRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
     const token = await this.accessToken();
     let response = await fetch(`${this.config.apiBase}${path}`, { ...init, headers: {
       "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...(init.headers || {})
