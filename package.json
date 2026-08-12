@@ -6,9 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "test": "vitest run"
+    "test": "vitest run src",
+    "test:e2e": "playwright test",
+    "verify": "pnpm test && pnpm build && pnpm test:e2e"
   },
   "dependencies": {
+    "@agentour/sdk": "file:vendor/agentour-sdk-0.1.0.tgz",
+    "@agentour/react": "file:vendor/agentour-react-0.1.0.tgz",
+    "@agentour/ui": "file:vendor/agentour-ui-0.1.0.tgz",
     "@vitejs/plugin-react": "latest",
     "vite": "latest",
     "typescript": "latest",
@@ -18,6 +23,8 @@
   "devDependencies": {
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "@types/node": "latest",
+    "@playwright/test": "^1.55.0",
     "vitest": "latest"
   },
   "packageManager": "pnpm@10.23.0+sha512.21c4e5698002ade97e4efe8b8b4a89a8de3c85a37919f957e7a0f30f38fbc5bbdd05980ffe29179b2fb6e6e691242e098d945d1601772cad0fef5fb6411e2a4b"
