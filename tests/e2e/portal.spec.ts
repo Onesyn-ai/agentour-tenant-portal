@@ -38,7 +38,7 @@ test("tenant admin traverses management and opens a session",async({page})=>{
     await page.getByRole("button",{name:label,exact:true}).click();
   }
   await page.getByRole("button",{name:/发现$/}).click();
-  await page.getByRole("article").click();
+  await page.getByRole("button",{name:"打开 Demo Agent"}).click();
   await expect(page.getByRole("heading",{name:"Demo Agent",level:2})).toBeVisible();
   await page.getByRole("button",{name:"开始使用",exact:true}).last().click();
   await expect(page.getByText("运行中",{exact:true}).first()).toBeVisible();
