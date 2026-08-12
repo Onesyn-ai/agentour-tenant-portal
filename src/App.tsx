@@ -8,6 +8,7 @@ import "@agentour/ui/workspace.css";
 import "@agentour/ui/product.css";
 import "@agentour/ui/channel.css";
 import {AgentourClient,tokenFromEndpoint,type Agent,type LibraryItem,type Session,type TenantContext} from "./api";
+import {AgentourHttpError} from "@agentour/sdk";
 import {portalConfig} from "./config";
 import "./styles.css";
 
@@ -21,7 +22,7 @@ export default function App(){
  const config=useMemo(()=>portalConfig(),[]),client=useMemo(()=>new AgentourClient(config,()=>tokenFromEndpoint(config.tokenEndpoint)),[config]);
  const [context,setContext]=useState<TenantContext|null>(null),[agents,setAgents]=useState<Agent[]>([]),[tab,setTab]=useState<Tab>("discover"),[error,setError]=useState(""),[busy,setBusy]=useState(true),[sessionId,setSessionId]=useState("");
  const isAdmin=Boolean(context?.scopes.some(scope=>scope.startsWith("tenant:")));
- useEffect(()=>{document.documentElement.style.setProperty("--primary",config.primaryColor);let cancelled=false;void(async()=>{for(let attempt=0;attempt<12;attempt++)try{const [ctx,list]=await Promise.all([client.context(),client.agents()]);if(!cancelled){setContext(ctx);setAgents(list.data);setBusy(false)}return}catch(e){if(attempt===11&&!cancelled){setError(String(e));setBusy(false);return}await new Promise(r=>setTimeout(r,Math.min(1000*(attempt+1),5000)))}})();return()=>{cancelled=true}},[client,config]);
+ useEffect(()=>{document.documentElement.style.setProperty("--primary",config.primaryColor);let cancelled=false;void(async()=>{for(let attempt=0;attempt<3;attempt++)try{const [ctx,list]=await Promise.all([client.context(),client.agents()]);if(!cancelled){setContext(ctx);setAgents(list.data);setBusy(false)}return}catch(e){const terminal=e instanceof AgentourHttpError&&e.status===401;if((terminal||attempt===2)&&!cancelled){setError(String(e));setBusy(false);return}await new Promise(r=>setTimeout(r,500*(attempt+1)))}})();return()=>{cancelled=true}},[client,config]);
  if(busy)return <main className="center"><LoadingState label="正在进入租户工作区…"/></main>;
  if(error)return <main className="center"><section className="error"><h1>无法进入门户</h1><p>{error}</p><small>身份端点：{config.tokenEndpoint}</small></section></main>;
  const visible=tabs.filter(x=>!x.admin||isAdmin),meta=visible.find(x=>x.id===tab)!;
